@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrandConcept } from '../types';
-import { Download, Share2, Copy } from 'lucide-react';
+import { Download, Share2, Copy, Check, FileJson, FileText, Package } from 'lucide-react';
 
 interface ResultSectionProps {
   concept: BrandConcept;
@@ -26,6 +26,111 @@ const BentoCard = ({ children, className = "", delay = 0 }: BentoCardProps) => (
 );
 
 export const ResultSection: React.FC<ResultSectionProps> = ({ concept, imageUrl }) => {
+  const [copied, setCopied] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
+  const [jsonDownloaded, setJsonDownloaded] = useState(false);
+
+  // Enhanced Markdown content
+  const getMarkdownContent = () => {
+    return `
+# ${concept.name}
+> ${concept.tagline}
+
+---
+
+## The Narrative
+${concept.description}
+
+## Vibe
+${concept.vibe}
+
+## Target Audience
+${concept.targetAudience}
+
+## Signature Offerings
+${concept.products.map(p => `### ${p.name} (${p.pricePoint})
+${p.description}`).join('\n\n')}
+
+## Marketing Copy
+"${concept.marketingCopy}"
+
+## Color Palette
+- Primary: ${concept.palette.primary}
+- Secondary: ${concept.palette.secondary}
+- Accent: ${concept.palette.accent}
+- Background: ${concept.palette.background}
+    `.trim();
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(getMarkdownContent()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleDownloadMarkdown = () => {
+    const textContent = getMarkdownContent();
+    const blob = new Blob([textContent], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${concept.name.replace(/\s+/g, '-')}-Identity.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Also try to download image if it exists
+    if (imageUrl) {
+       setTimeout(() => {
+          const imgLink = document.createElement('a');
+          imgLink.href = imageUrl;
+          imgLink.download = `${concept.name.replace(/\s+/g, '-')}-Visual.png`;
+          document.body.appendChild(imgLink);
+          imgLink.click();
+          document.body.removeChild(imgLink);
+       }, 500);
+    }
+    setDownloaded(true);
+    setTimeout(() => setDownloaded(false), 2000);
+  };
+
+  const handleDownloadJSON = () => {
+    const jsonContent = JSON.stringify(concept, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${concept.name.replace(/\s+/g, '-')}-Data.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setJsonDownloaded(true);
+    setTimeout(() => setJsonDownloaded(false), 2000);
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: concept.name,
+      text: `${concept.name}: ${concept.tagline}\n\n${concept.description}`,
+      url: window.location.href // Sharing current app URL as context
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Share cancelled or failed', err);
+      }
+    } else {
+      // Fallback to clipboard
+      handleCopy();
+    }
+  };
+
   return (
     <section className="min-h-screen bg-void py-20 px-6">
       <div className="container mx-auto max-w-7xl">
@@ -117,16 +222,65 @@ export const ResultSection: React.FC<ResultSectionProps> = ({ concept, imageUrl 
             </BentoCard>
           </div>
           
+          {/* Products / Services Section */}
+          <div className="col-span-1 md:col-span-12">
+             <BentoCard delay={0.6}>
+                <div className="flex items-center gap-2 mb-6 text-accent">
+                  <Package size={18} />
+                  <h3 className="text-sm uppercase tracking-wider">Signature Offerings</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {concept.products.map((product, index) => (
+                    <div key={index} className="group border-l border-white/10 pl-6 hover:border-accent transition-colors">
+                      <h4 className="font-serif text-xl text-white mb-2 group-hover:text-accent transition-colors">
+                        {product.name}
+                      </h4>
+                      <span className="text-xs uppercase tracking-widest text-white/40 mb-2 block">{product.pricePoint}</span>
+                      <p className="text-white/60 text-sm leading-relaxed">
+                        {product.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+             </BentoCard>
+          </div>
+          
           {/* Action Bar */}
-          <div className="col-span-1 md:col-span-12 mt-8 flex justify-center gap-6">
-            <button className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-colors text-sm uppercase tracking-widest">
-              <Download size={16} /> Save Asset
+          <div className="col-span-1 md:col-span-12 mt-8 flex flex-wrap justify-center gap-4">
+            {/* Export Markdown + Image */}
+            <button 
+              onClick={handleDownloadMarkdown}
+              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white text-void hover:bg-gray-200 transition-colors text-sm uppercase tracking-widest font-medium min-w-[180px] justify-center"
+            >
+              {downloaded ? <Check size={16} /> : <FileText size={16} />}
+              {downloaded ? 'Saved' : 'Export Kit (.md)'}
             </button>
-             <button className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-colors text-sm uppercase tracking-widest">
+            
+            {/* Export JSON */}
+             <button 
+              onClick={handleDownloadJSON}
+              className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-colors text-sm uppercase tracking-widest min-w-[180px] justify-center"
+            >
+              {jsonDownloaded ? <Check size={16} /> : <FileJson size={16} />}
+              {jsonDownloaded ? 'Saved JSON' : 'JSON Data'}
+            </button>
+            
+            {/* Share */}
+             <button 
+              onClick={handleShare}
+              className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-colors text-sm uppercase tracking-widest min-w-[180px] justify-center"
+            >
               <Share2 size={16} /> Share
             </button>
-             <button className="flex items-center gap-2 px-6 py-3 rounded-full bg-accent text-black font-semibold hover:bg-white transition-colors text-sm uppercase tracking-widest">
-              <Copy size={16} /> Copy Prompt
+            
+            {/* Copy */}
+             <button 
+               onClick={handleCopy}
+               className="flex items-center gap-2 px-6 py-3 rounded-full border border-white/10 hover:bg-white/10 transition-colors text-sm uppercase tracking-widest min-w-[180px] justify-center"
+             >
+              {copied ? <Check size={16} className="text-accent" /> : <Copy size={16} />}
+              {copied ? 'Copied' : 'Copy Text'}
             </button>
           </div>
 

@@ -36,9 +36,22 @@ export const generateBrandIdentity = async (userPrompt: string): Promise<BrandCo
                 background: { type: Type.STRING, description: "Hex code" },
               },
               required: ["primary", "secondary", "accent", "background"]
+            },
+            products: {
+              type: Type.ARRAY,
+              description: "List of 3 signature products or services this brand offers.",
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING, description: "Creative product name" },
+                  description: { type: Type.STRING, description: "Short description" },
+                  pricePoint: { type: Type.STRING, description: "e.g. High-end, Accessible, $$$" }
+                },
+                required: ["name", "description", "pricePoint"]
+              }
             }
           },
-          required: ["name", "tagline", "description", "targetAudience", "vibe", "palette", "marketingCopy"]
+          required: ["name", "tagline", "description", "targetAudience", "vibe", "palette", "marketingCopy", "products"]
         }
       }
     });

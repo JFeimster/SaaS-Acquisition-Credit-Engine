@@ -5,6 +5,12 @@ export interface BrandPalette {
   background: string;
 }
 
+export interface Product {
+  name: string;
+  description: string;
+  pricePoint: string;
+}
+
 export interface BrandConcept {
   name: string;
   tagline: string;
@@ -13,6 +19,7 @@ export interface BrandConcept {
   palette: BrandPalette;
   vibe: string;
   marketingCopy: string;
+  products: Product[];
 }
 
 export interface GeneratedAsset {
